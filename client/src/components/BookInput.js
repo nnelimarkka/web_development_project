@@ -33,7 +33,7 @@ const BookInput = () => {
                 <input type="text" id="author" name="author" />
                 <label htmlFor="pages">pages</label>
                 <input type="number" id="pages" name="pages" />
-                <input type="submit" id="submit" />
+                <input className="btn" type="submit" id="submit" />
             </form>
   
         </div>

@@ -1,5 +1,6 @@
 import React from 'react'
 
+//404-page
 const My404 = () => {
     return (
         <div>
