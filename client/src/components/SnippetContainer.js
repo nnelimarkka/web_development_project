@@ -1,5 +1,6 @@
 import React from 'react'
 import {useState, useEffect} from "react";
+import {Link} from "react-router-dom";
 
 /*
     main content of the page is rendered in this component ie. all of the code snippets found in database.
@@ -87,6 +88,7 @@ const SnippetContainer = ({jwt, snippets, setSnippets, user}) => {
                         </p>
                         <p className="post-header">{item.title}</p>
                         <pre><code>{item.body}</code></pre>
+                        <Link className="page-link" to={`/posts/${item.title}`}>Comments</Link>
                      </div>
                     )
                  })     

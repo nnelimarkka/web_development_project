@@ -81,7 +81,7 @@ router.use(passport.initialize());
 });
 */
 
-//getting all posts
+//get all posts
 router.get("/posts", (req, res) => {
   Posts.find({}, (err, postArray) => {
     if (err) throw err;
@@ -91,6 +91,18 @@ router.get("/posts", (req, res) => {
       return res.send(postArray);
     }
   });
+})
+
+//get single post for commenting/viewing comments
+router.get("/post/:title", (req, res) => {
+  Posts.findOne({title: req.params.title}, (err, post) => {
+    if (err) throw err;
+    if (post) {
+      res.send(post);
+    } else {
+      return res.status(403).json({message: `Post: ${req.params.title} not found`});
+    }
+  })
 })
 
 //posting a new post
@@ -115,6 +127,25 @@ router.post("/posts/post", passport.authenticate('jwt', {session: false}), (req,
     );
     }
   })
+})
+
+//Updating post with new comment, here it is safe to assume that post with title :title exists
+router.post("/posts/update/:title", passport.authenticate('jwt', {session: false}), (req, res) => {
+  Posts.updateOne(
+    {title: req.params.title},
+    {$push: {comments: {
+      author: req.user.id,
+      username: req.user.username,
+      body: req.body.body,
+      date: Date()
+    }}},
+    (err, ok) => {
+      if (err) throw err;
+      else {
+        return res.json({message: "ok"})
+      }
+    }
+  )
 })
 
 router.post('/login', 

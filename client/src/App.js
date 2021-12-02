@@ -1,5 +1,4 @@
 import './App.css';
-import BookData from './components/BookData';
 import My404 from './components/My404';
 import Footer from './components/Footer';
 import Login from './components/Login';
@@ -7,6 +6,7 @@ import SnippetContainer from './components/SnippetContainer';
 import Register from './components/Register';
 import {BrowserRouter as Router, Routes, Route, Link} from 'react-router-dom';
 import {useState} from "react";
+import CommentContainer from './components/CommentContainer';
 
 
 
@@ -32,10 +32,10 @@ function App() {
         <h3>{jwt ? `Logged in as: ${user.username}.` : ""}</h3>
         <hr/>
         <Routes>
-          <Route path="/book/:name" element={<BookData />}></Route>
           <Route path="/" element={<SnippetContainer jwt={jwt} snippets={snippets} setSnippets={setSnippets} user={user}/>}></Route>
           <Route path="/login" element={<Login setJwt={setJwt} setUser={setUser} jwt={jwt}/>}></Route>
           <Route path="/register" element={<Register />}></Route>
+          <Route path="/posts/:title" element={<CommentContainer jwt={jwt} />}></Route>
           <Route path="*" element={<My404 />}></Route>
 
         </Routes>
