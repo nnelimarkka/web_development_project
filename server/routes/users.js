@@ -14,6 +14,7 @@ const { application, request } = require('express');
 const multer = require("multer")
 const storage = multer.memoryStorage();
 const upload = multer({storage})
+const hljs = require("highlight.js")
 
 /*
   Here I am using week 7 exercises as a basis for my userRouter.
@@ -43,43 +44,10 @@ passport.use(new jwtStrategy(opts, (jwt_payload, done) => {
 
 router.use(passport.initialize());
 
-/*router.post("/todos", passport.authenticate('jwt', {session: false}), (req, res) => {
-  Todo.findOne({ user: req.user.id }, (err, todo) => {
-    console.log(req.body.items);
-    if (err)
-      throw err;
-    if (!todo) {
-      Todo.create(
-        {
-          user: req.user.id,
-          items: req.body.items
-        },
-        (err, ok) => {
-          if(err) throw err;
-          return res.send("ok");
-        });
-    } else {
-      Todo.updateOne(
-        {user: req.user.id},
-        {$push: {items: {$each: req.body.items}}},
-        (err, ok) => {
-          if (err) throw err;
-          return res.send("ok");
-        });
-        
-      }
-  });
-});
-*/
-
-/*router.post("/todos/todo", passport.authenticate('jwt', {session: false}), (req, res) => {
-  Todo.findOne({user: req.user.id}, (err, todo) => {
-    if (err) throw err;
-    if (!todo) return res.status(404).json({message: "no todo"});
-    return res.send(todo);
-  });
-});
-*/
+// formatting post body as highlight.js html string
+function highlight(code) {
+  return hljs.highlightAuto(code).value;
+}
 
 //get all posts
 router.get("/posts", (req, res) => {
@@ -89,6 +57,19 @@ router.get("/posts", (req, res) => {
       return res.json({message: "No posts found"});
     } else {
       return res.send(postArray);
+    }
+  });
+})
+
+//get posts filtered by search search help from week 4 exercises
+router.get("/posts/search/:expression", (req, res) => {
+  let expression = req.params.expression;
+  Posts.find({title: new RegExp(expression, "i")}, (err, postArray) => {
+    if (err) throw err;
+    if(postArray) {
+      return res.send(postArray);
+    } else {
+      return res.json({message: "No posts found"});
     }
   });
 })
@@ -112,32 +93,37 @@ router.post("/posts/post", passport.authenticate('jwt', {session: false}), (req,
     if (post) {
       return res.status(403).json({message: "Dublicate post"});
     } else {
-    Posts.create(
-      {
-        author: req.user.id,
-        username: req.user.username,
-        title: req.body.title,
-        body: req.body.body,
-        date: Date()
-      },
-      (err, ok) => {
-        if(err) throw err;
-        return res.json({message: "ok"});
-      }
-    );
+      let editDate = Date(); //making sure both dates are initially same
+      Posts.create(
+        {
+          author: req.user.id,
+          username: req.user.username,
+          title: req.body.title,
+          body: req.body.body,
+          formattedBody: highlight(req.body.body),
+          date: editDate,
+          lastEdited: editDate
+        },
+        (err, ok) => {
+          if(err) throw err;
+          return res.json({message: "ok"});
+        }
+      );
     }
   })
 })
 
 //Updating post with new comment, here it is safe to assume that post with title :title exists
-router.post("/posts/update/:title", passport.authenticate('jwt', {session: false}), (req, res) => {
+router.post("/posts/comment/:title", passport.authenticate('jwt', {session: false}), (req, res) => {
+  let editDate = Date();
   Posts.updateOne(
     {title: req.params.title},
     {$push: {comments: {
       author: req.user.id,
       username: req.user.username,
       body: req.body.body,
-      date: Date()
+      date: editDate,
+      lastEdited: editDate
     }}},
     (err, ok) => {
       if (err) throw err;
@@ -148,6 +134,7 @@ router.post("/posts/update/:title", passport.authenticate('jwt', {session: false
   )
 })
 
+//login same as week 7
 router.post('/login', 
   upload.none(),
   (req, res, next) => {
@@ -163,7 +150,7 @@ router.post('/login',
           if (isMatch) {
             const jwtPayload = {
               id: user._id,
-              username: user.username
+              username: user.username,
             };
             jwt.sign(
               jwtPayload,
@@ -184,14 +171,6 @@ router.post('/login',
     });
 
   });
-
-/*router.get("/user/users/:email", (req, res) => {
-  User.findOne({email: req.params.email}, (err, user) => {
-    if(err) throw err;
-    if(!user) return res.status(404).json({user: "Not found"});
-    if(user) return res.send(user);
-  })
-}); */
 
 // Registering is same as exercise week 7, I decided to have username instead of email
 router.post('/register', 
@@ -224,6 +203,7 @@ router.post('/register',
               {
                 username: req.body.username,
                 password: hash,
+                bio: "Lorem ipsum",
                 registerDate: Date()
               },
               (err, ok) => {
@@ -237,6 +217,110 @@ router.post('/register',
     });
 });
 
+//get user info for profile page
+router.get("/user/:user", (req, res) => {
+  User.findOne({ username: req.params.user }, (err, user) => {
+    if (err) throw err;
+    if (!user) return res.json({message: "no user found"});
+    if(user) {
+      return res.json({
+        username: user.username,
+        bio: user.bio,
+        registerDate: user.registerDate
+        //not sending whole user, because there is no need to send password
+      });
+    }
+  })
+})
 
+//update user bio
+router.post("/update/:user", passport.authenticate('jwt', {session: false}), (req, res) => {
+  User.updateOne(
+    {username: req.params.user},
+    {$set: {bio: req.body.bio}},
+    (err, ok) => {
+      if (err) throw err;
+      else {
+        return res.json({message: "ok"})
+      }
+    }
+  )
+})
+
+// Updating the post. Changing lastEdited to display editing time
+router.post("/update/post/:title", passport.authenticate('jwt', {session: false}), (req, res) => {
+  Posts.updateOne(
+    {title: req.params.title},
+    {$set: {
+      body: req.body.body,
+      formattedBody: highlight(req.body.body),
+      lastEdited: Date()
+    }},
+    (err, ok) => {
+      if (err) throw err;
+      else {
+        return res.json({message: "ok"})
+      }
+    }
+  )
+})
+
+//deleting post (only admin)
+router.post("/delete/post/:title", passport.authenticate('jwt', {session: false}), (req, res) => {
+  if(!(req.user.username === "ADMIN")) {
+    return res.json({message: "good try"});
+  }
+  Posts.findOneAndDelete({title: req.params.title}, (err) => {
+    if(err) throw err;
+    res.json({message: "ok"});
+  })
+})
+
+/* 
+  Updating a comment. Some help: https://stackoverflow.com/questions/23318035/update-embedded-document-mongoose 
+  and https://coderedirect.com/questions/361992/mongoose-updating-embedded-document-in-array
+*/
+router.post("/update/comment/:title/:id", passport.authenticate('jwt', {session: false}), (req, res) => {
+  Posts.findOne({title: req.params.title}, (err, post) => {
+    if (err) throw err;
+    if (!post) {
+      return res.status(403).json({message: "No post found"});
+    }
+    if (post) {
+      let comment = post.comments.id(req.params.id);
+      comment.body = req.body.body;
+      comment.lastEdited = Date();
+
+      post.save((err) => {
+        if(err) throw err;
+        else {
+          return res.json({message: "ok"});
+        }
+      })
+    }
+  })
+})
+
+//Delete a comment (ADMIN only)
+router.post("/delete/comment/:title/:id", passport.authenticate('jwt', {session: false}), (req, res) => {
+  if(!(req.user.username === "ADMIN")) {
+    return res.json({message: "good try"});
+  }
+  Posts.findOne({title: req.params.title}, (err, post) => {
+    if (err) throw err;
+    if (!post) {
+      return res.status(403).json({message: "No post found"});
+    }
+    if (post) {
+      post.comments.id(req.params.id).remove();
+      post.save((err) => {
+        if(err) throw err;
+        else {
+          return res.json({message: "ok"});
+        }
+      })
+    }
+  })
+})
 
 module.exports = router;

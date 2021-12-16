@@ -12,15 +12,18 @@ let Comments = new Schema({
     author: String,
     username: String,
     body: String,
-    date: Date
+    date: Date,
+    lastEdited: Date
 });
 
 let Post = new Schema ({
-    author: String,
+    author: String, //author as objectId
     username: String,
     title: String,
     body: String,
+    formattedBody: String, //formattedBody is for storing body in formatted form (highlight.js)
     date: Date,
+    lastEdited: Date,
     comments: [Comments]
 
 });

@@ -23,6 +23,10 @@ const Register = () => {
 
     const submit = (e) => {
         e.preventDefault()
+        if (user.username === "ADMIN") {
+            setErrMsg("Invalid username!");
+            return;
+        }
     
         fetch("/users/register", {
             method: "POST",
