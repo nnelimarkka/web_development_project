@@ -93,6 +93,7 @@ div.content-container {
   text-align: left;
   padding: 10px 15px 10px 15px;
   border: 2px solid black;
+  overflow: scroll;
 }
 
 .comment-container {

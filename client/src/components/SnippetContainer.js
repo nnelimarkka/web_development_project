@@ -118,7 +118,7 @@ const SnippetContainer = ({jwt, snippets, setSnippets, user}) => {
 
     // some ideas from https://stackoverflow.com/questions/47402365/how-to-have-nested-loops-with-map-in-jsx
     return (
-        <div>
+        <div className='row'>
             {snippets?.length === 0 && <p>No posts found :(</p>}
             {!(snippets?.length === 0) &&
                 <div className='content-container'>
